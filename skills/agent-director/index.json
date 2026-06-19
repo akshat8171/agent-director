@@ -1,0 +1,93 @@
+{
+  "name": "agent-director",
+  "version": "2.0.0",
+  "description": "Director-of-Agents orchestration. Full SDLC team roles. Provide intent, agents execute end-to-end.",
+  "author": "akshat.garg@salesforce.com",
+  "proficiency": {
+    "current_pl": "PL3",
+    "current_stage": 7,
+    "stage_name": "Manager of Agent Managers",
+    "percentile": 0.93,
+    "target_stage": 9,
+    "target_name": "Trusted Automation & Autonomy"
+  },
+  "workflows": {
+    "execute": {
+      "name": "agent-director-execute",
+      "description": "Full SDLC pipeline: PM → Architect → Dev → Review → Test → QA → Ship",
+      "roles": ["product_manager", "architect", "developer", "reviewer", "tester", "qa_manager", "devops"],
+      "use_when": "build, fix, ship — any usecase that produces code"
+    },
+    "spike": {
+      "name": "agent-director-spike",
+      "description": "Technical spike: parallel POC exploration → evaluate → recommend",
+      "roles": ["product_manager", "developer", "reviewer", "engineering_manager"],
+      "use_when": "feasibility questions, approach selection, POC comparison before committing"
+    },
+    "research": {
+      "name": "agent-director-research",
+      "description": "Multi-source investigation → verify → synthesize",
+      "roles": ["research_director", "specialist", "verifier", "synthesizer"],
+      "use_when": "pure research, no code changes — investigation, analysis, due diligence"
+    }
+  },
+  "team_roles": {
+    "product_manager": {
+      "real_world_mirror": "PM who writes PRDs",
+      "responsibilities": ["requirements", "user stories", "acceptance criteria", "prioritization", "success metrics"],
+      "outputs": ["product brief", "MoSCoW stories", "acceptance criteria"]
+    },
+    "architect": {
+      "real_world_mirror": "Tech Lead / Staff Engineer",
+      "responsibilities": ["design", "patterns", "interfaces", "data models", "build order"],
+      "outputs": ["technical design", "component blueprint", "API contracts"]
+    },
+    "developer": {
+      "real_world_mirror": "IC Engineer on the team",
+      "responsibilities": ["TDD implementation", "unit tests", "commits"],
+      "outputs": ["working code", "passing tests", "implementation notes"],
+      "parallelism": "one per component, isolated worktrees"
+    },
+    "reviewer": {
+      "real_world_mirror": "Senior Engineer doing PR review",
+      "responsibilities": ["code review", "bug detection", "security audit", "design compliance"],
+      "outputs": ["verdict", "issue list with fixes", "quality score"]
+    },
+    "tester": {
+      "real_world_mirror": "QA Engineer writing test suites",
+      "responsibilities": ["test plan", "unit/integration/edge tests", "bug reporting"],
+      "outputs": ["test results", "coverage report", "bug reports with repro"]
+    },
+    "qa_manager": {
+      "real_world_mirror": "QA Lead giving ship/no-ship",
+      "responsibilities": ["acceptance validation", "release sign-off", "release notes"],
+      "outputs": ["go/no-go verdict", "validated criteria", "release notes"]
+    },
+    "devops": {
+      "real_world_mirror": "Release Engineer / DevOps",
+      "responsibilities": ["PR creation", "CI validation", "release packaging"],
+      "outputs": ["PR with context", "deployment notes"]
+    },
+    "engineering_manager": {
+      "real_world_mirror": "EM making go/no-go decisions",
+      "responsibilities": ["synthesis", "recommendation", "risk acceptance"],
+      "outputs": ["recommendation with rationale", "implementation path"]
+    }
+  },
+  "usecase_types": ["build", "fix", "research", "ship", "plan", "operate", "spike"],
+  "routing": {
+    "build": "execute",
+    "fix": "execute",
+    "ship": "execute",
+    "research": "research",
+    "plan": "spike",
+    "operate": "execute",
+    "spike": "spike"
+  },
+  "escalation_policy": {
+    "max_retries": 2,
+    "auto_fix_on": ["review_changes_requested", "test_bugs_found"],
+    "block_ship_on": ["qa_fail", "security_critical"],
+    "escalate_to_director_on": ["ambiguous_requirements", "external_dependency", "risk_decision"]
+  }
+}
