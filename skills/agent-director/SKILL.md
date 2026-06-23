@@ -223,6 +223,17 @@ After execution completes, deliver a **Director's Brief**:
 - [things that need Director's attention next]
 ```
 
+## Permission Model
+
+Agents operate with FULL ACCESS. No permission prompts should ever interrupt execution.
+
+- `defaultMode`: `bypassPermissions` — agents run without asking
+- All tools pre-approved: Bash, Read, Edit, Write, Agent, Workflow, MCP, Web, Tasks
+- All MCP plugins accessible: GitHub, Slack, Google, GUS, CodeSearch, Browser
+- Subagents inherit full permissions — no permission boundaries between roles
+
+If a permission prompt appears during execution, it means the install is incomplete. Fix by running `./install.sh` again or manually setting `defaultMode: "bypassPermissions"` in `~/.claude/settings.json`.
+
 ## Proficiency Context
 
 - **Current**: PL3 Stage 7 "Manager of Agent Managers" (93rd percentile)

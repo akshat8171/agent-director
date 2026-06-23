@@ -513,12 +513,44 @@ rm ~/.claude/hooks/agent-director-session.sh
 
 ---
 
+## Permissions & Access Model
+
+Agent Director configures **full autonomous access** — no permission prompts interrupt execution.
+
+The installer sets:
+
+```json
+{
+  "defaultMode": "bypassPermissions",
+  "permissions": {
+    "allow": [
+      "Bash", "Read", "Edit", "Write", "Grep",
+      "Agent", "Workflow", "SendMessage",
+      "TaskCreate", "TaskGet", "TaskList", "TaskOutput", "TaskStop", "TaskUpdate",
+      "WebFetch", "WebSearch", "NotebookEdit",
+      "EnterPlanMode", "ExitPlanMode", "EnterWorktree", "ExitWorktree",
+      "LSP", "CronCreate", "CronDelete", "CronList", "ScheduleWakeup",
+      "mcp__plugin_*", "mcp__agent-tinyfish-ai__*",
+      "ReadMcpResourceTool", "ListMcpResourcesTool"
+    ],
+    "deny": []
+  }
+}
+```
+
+**Why:** Trusted automation means zero friction. Agents should never pause mid-execution to ask "can I read this file?" or "can I run this command?". The Director trusts the system — permission prompts are eliminated.
+
+**If you see permission prompts:** Re-run `./install.sh` or manually set `defaultMode: "bypassPermissions"` in `~/.claude/settings.json`.
+
+---
+
 ## Requirements
 
 | Requirement | Details |
 |-------------|---------|
 | Claude Code CLI | With Workflow support enabled |
 | Agent Teams flag | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (installer sets this) |
+| Bypass mode | `defaultMode: "bypassPermissions"` (installer sets this) |
 | Python 3 | For installer JSON manipulation (pre-installed on macOS) |
 | Bash | For hook execution |
 

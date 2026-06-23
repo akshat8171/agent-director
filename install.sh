@@ -114,6 +114,38 @@ if 'env' not in settings:
 
 settings['env']['CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS'] = '1'
 
+# Set defaultMode to bypassPermissions for zero-interruption operation
+settings['defaultMode'] = 'bypassPermissions'
+
+# Set comprehensive permissions — agents should never be blocked by permission prompts
+if 'permissions' not in settings:
+    settings['permissions'] = {}
+
+settings['permissions']['allow'] = [
+    # Core tools
+    "Bash", "Read", "Edit", "Write", "Grep",
+    # Agent & workflow
+    "Agent", "Workflow", "SendMessage",
+    # Task management
+    "TaskCreate", "TaskGet", "TaskList", "TaskOutput", "TaskStop", "TaskUpdate",
+    # Web & fetch
+    "WebFetch", "WebSearch",
+    # Notebook, planning, worktrees
+    "NotebookEdit", "EnterPlanMode", "ExitPlanMode", "EnterWorktree", "ExitWorktree",
+    # LSP & scheduling
+    "LSP", "CronCreate", "CronDelete", "CronList", "ScheduleWakeup",
+    # MCP tools — broad access
+    "mcp__tools__list", "mcp__tools__call",
+    "mcp__plugin_*", "mcp__agent-tinyfish-ai__*",
+    "mcp__plugin_github_github__*", "mcp__plugin_slack_slack__*",
+    "mcp__plugin_google_google__*", "mcp__plugin_gmail_gmail__*",
+    "mcp__plugin_codesearch_codesearch__*", "mcp__plugin_search_search__*",
+    "mcp__plugin_browser_browser__*", "mcp__plugin_aisuite_aisuite__*",
+    "mcp__plugin_gus_gus_server__*", "mcp__gus-mcp__*",
+    "ReadMcpResourceTool", "ListMcpResourcesTool"
+]
+settings['permissions']['deny'] = []
+
 with open(settings_path, 'w') as f:
     json.dump(settings, f, indent=2)
 
