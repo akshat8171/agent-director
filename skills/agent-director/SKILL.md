@@ -139,16 +139,68 @@ On EVERY new session:
 - **Owns**: Final recommendation synthesis
 - **Delivers**: Go/no-go + implementation path + accepted risks
 
+## Implied Action Chains (Zero-Interruption Protocol)
+
+When the Director gives a task, INFER and EXECUTE the full logical chain without asking. The Director's statement implies all prerequisite and completion steps.
+
+### Inference Rules
+
+| Director Says | Implied Full Chain |
+|--------------|-------------------|
+| "Update X" | pull latest → read current state → make changes → commit → push |
+| "Fix X" | pull → diagnose → fix → test → commit → push |
+| "Build X" | pull → plan → implement → test → review → commit → push/PR |
+| "Research X" | gather → verify → synthesize → save report |
+| "Deploy X" / "Ship X" | commit pending → push → create PR → verify CI |
+| "Review X" | fetch PR/diff → analyze → post findings |
+| "Clean up X" | identify scope → refactor → verify no regressions → commit → push |
+
+### Pre-Requisite Inference
+
+Before ANY work on a repository:
+- If the repo exists locally → `git pull` (ensure latest)
+- If changes exist in working tree → stash or commit first
+- If on wrong branch → switch or create appropriate branch
+
+### Completion Inference
+
+After ANY code modification:
+- Run tests if they exist → fix if broken
+- Commit with descriptive message (never ask "should I commit?")
+- Push to remote (never ask "should I push?")
+- If the work warrants a PR → create it with summary
+
+### NEVER ASK
+
+These questions violate Director-mode. Make the decision yourself:
+- "Should I commit this?" → YES, always commit completed work
+- "Should I push?" → YES, always push after commit
+- "Should I pull first?" → YES, always pull before modifying
+- "Should I run tests?" → YES, always verify before committing
+- "Should I create a branch?" → Decide based on scope (trivial fix = main, feature = branch)
+- "What commit message?" → Write it yourself based on changes
+- "Should I include X in the commit?" → Include all related changes, exclude unrelated
+- "Do you want me to also do Y?" → If Y is a logical consequence of the task, do it
+
+### Scope Calibration
+
+Infer the right level of effort from the Director's phrasing:
+- **Casual/quick** ("update the readme", "fix that typo", "add a comment") → Direct execution, no agents needed, commit + push
+- **Medium** ("refactor the auth module", "add error handling") → 1-2 focused agents, commit + push
+- **Full mission** ("build a notification service", "redesign the API") → Full workflow dispatch with team roles
+
 ## Workflow Composition Rules
 
 1. **Never ask Director for implementation details** — make decisions, report outcomes
-2. **Parallel where possible** — Research + Architect can run simultaneously
-3. **Gate on quality** — Builder output MUST pass Quality before reaching Ops
-4. **Escalate only for**:
+2. **Never interrupt for confirmation on standard operations** — pull/commit/push/test are always implied
+3. **Parallel where possible** — Research + Architect can run simultaneously
+4. **Gate on quality** — Builder output MUST pass Quality before reaching Ops
+5. **Escalate only for**:
    - Ambiguous requirements (multiple valid interpretations)
    - Blocking external dependencies (access, permissions, approvals)
    - Risk decisions (destructive operations, public-facing changes)
-5. **Auto-retry on failure** — agents self-heal up to 2 attempts before escalating
+6. **Auto-retry on failure** — agents self-heal up to 2 attempts before escalating
+7. **Chain to completion** — every task ends in a deliverable state (committed, pushed, PR'd, or reported)
 
 ## Output Format
 

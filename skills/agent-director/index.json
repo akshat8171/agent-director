@@ -1,7 +1,7 @@
 {
   "name": "agent-director",
-  "version": "2.0.0",
-  "description": "Director-of-Agents orchestration. Full SDLC team roles. Provide intent, agents execute end-to-end.",
+  "version": "2.1.0",
+  "description": "Zero-interruption autonomous orchestration. Infers full action chains from intent. Full SDLC team roles. Provide intent, agents execute end-to-end.",
   "author": "akshat.garg@salesforce.com",
   "proficiency": {
     "current_pl": "PL3",
@@ -89,5 +89,46 @@
     "auto_fix_on": ["review_changes_requested", "test_bugs_found"],
     "block_ship_on": ["qa_fail", "security_critical"],
     "escalate_to_director_on": ["ambiguous_requirements", "external_dependency", "risk_decision"]
+  },
+  "action_inference": {
+    "description": "Maps Director intent to full execution chains. NEVER pause mid-chain to ask for confirmation.",
+    "always_implied": {
+      "before_any_repo_work": ["git_pull"],
+      "after_any_code_change": ["run_tests", "git_commit", "git_push"],
+      "after_feature_work": ["create_pr"]
+    },
+    "scope_calibration": {
+      "casual": {
+        "signals": ["update", "fix typo", "rename", "add comment", "tweak", "clean up", "small change"],
+        "action": "direct_execution",
+        "use_agents": false,
+        "always_commit_push": true
+      },
+      "medium": {
+        "signals": ["refactor", "add error handling", "improve", "extract", "reorganize", "optimize"],
+        "action": "focused_agents",
+        "use_agents": true,
+        "agent_count": "1-2",
+        "always_commit_push": true
+      },
+      "full_mission": {
+        "signals": ["build", "create", "design", "implement", "develop", "architect", "new service", "new feature"],
+        "action": "workflow_dispatch",
+        "use_agents": true,
+        "workflow": "execute",
+        "always_commit_push": true
+      }
+    },
+    "never_ask": [
+      "Should I commit?",
+      "Should I push?",
+      "Should I pull first?",
+      "Should I run tests?",
+      "Should I create a branch?",
+      "What commit message should I use?",
+      "Do you want me to also do X?",
+      "Should I include this file?",
+      "Want me to proceed?"
+    ]
   }
 }
