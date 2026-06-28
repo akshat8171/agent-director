@@ -1,7 +1,7 @@
 {
   "name": "agent-director",
-  "version": "2.1.0",
-  "description": "Zero-interruption autonomous orchestration. Infers full action chains from intent. Full SDLC team roles. Provide intent, agents execute end-to-end.",
+  "version": "2.2.0",
+  "description": "Zero-interruption autonomous orchestration with Loop-Until-Final-Output (LUFO). Infers full action chains from intent. Full SDLC team roles. Provide intent, agents execute and VERIFY end-to-end.",
   "author": "akshat.garg@salesforce.com",
   "proficiency": {
     "current_pl": "PL3",
@@ -85,10 +85,51 @@
     "spike": "spike"
   },
   "escalation_policy": {
-    "max_retries": 2,
-    "auto_fix_on": ["review_changes_requested", "test_bugs_found"],
+    "max_retries": 3,
+    "auto_fix_on": ["review_changes_requested", "test_bugs_found", "build_failure", "deploy_failure"],
     "block_ship_on": ["qa_fail", "security_critical"],
     "escalate_to_director_on": ["ambiguous_requirements", "external_dependency", "risk_decision"]
+  },
+  "lufo_protocol": {
+    "description": "Loop Until Final Output — never stop at intermediate states",
+    "version": "1.0.0",
+    "core_rule": "The deliverable is the VERIFIED END STATE, not a triggered/submitted intermediate",
+    "verification_targets": {
+      "deploy": "Live URL returning HTTP 200",
+      "build": "Exit code 0 with no errors",
+      "ci": "All checks green",
+      "push": "Remote ref updated successfully",
+      "pr": "PR URL returned and accessible"
+    },
+    "retry_limits": {
+      "deploy": 3,
+      "build": 3,
+      "push": 2,
+      "ci": 2
+    },
+    "poll_intervals_seconds": {
+      "deploy": 30,
+      "ci": 30,
+      "dns": 60
+    },
+    "max_wait_seconds": {
+      "deploy": 300,
+      "ci": 300,
+      "dns": 600
+    },
+    "anti_patterns": [
+      "Deploy triggered, check your dashboard",
+      "I pushed, CI should run automatically",
+      "Here are steps for you to run",
+      "Give it a minute and check",
+      "Build passed locally, should work remotely"
+    ],
+    "escalation_only_on": [
+      "Paid feature required (Vercel Pro, etc.)",
+      "External auth/token needed that agent cannot access",
+      "DNS propagation (external, not controllable)",
+      "Rate limiting after max retries exhausted"
+    ]
   },
   "action_inference": {
     "description": "Maps Director intent to full execution chains. NEVER pause mid-chain to ask for confirmation.",

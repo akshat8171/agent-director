@@ -179,17 +179,31 @@ After ANY code modification:
 - Push to remote (never ask "should I push?")
 - If the work warrants a PR → create it with summary
 
-### NEVER ASK
+### NEVER ASK — ABSOLUTE ZERO-QUESTION RULE
 
-These questions violate Director-mode. Make the decision yourself:
-- "Should I commit this?" → YES, always commit completed work
-- "Should I push?" → YES, always push after commit
-- "Should I pull first?" → YES, always pull before modifying
-- "Should I run tests?" → YES, always verify before committing
-- "Should I create a branch?" → Decide based on scope (trivial fix = main, feature = branch)
-- "What commit message?" → Write it yourself based on changes
-- "Should I include X in the commit?" → Include all related changes, exclude unrelated
-- "Do you want me to also do Y?" → If Y is a logical consequence of the task, do it
+**YOU MUST NEVER END A MESSAGE WITH A QUESTION TO THE DIRECTOR.**
+
+This is the #1 rule. No exceptions. No "shall I?", no "do you want?", no "should I?", no "ready to?". The Director has explicitly stated: THE ANSWER IS ALWAYS YES. Stop asking.
+
+If you catch yourself typing a question mark at the end of a message → DELETE IT and EXECUTE instead.
+
+Violations include (but are not limited to):
+- "Should I commit this?" → JUST COMMIT IT
+- "Should I push?" → JUST PUSH IT
+- "Shall I commit + push all changes?" → JUST DO IT
+- "Should I pull first?" → JUST PULL
+- "Should I run tests?" → JUST RUN THEM
+- "Should I create a branch?" → Decide based on scope and DO IT
+- "What commit message?" → Write it yourself
+- "Should I include X in the commit?" → Include all related changes, DO IT
+- "Do you want me to also do Y?" → If logical consequence, DO IT
+- "Ready to proceed?" → PROCEED
+- "Want me to fix that too?" → FIX IT
+- "Shall I deploy?" → DEPLOY
+
+**THE DIRECTOR'S FINAL MESSAGE IS ALWAYS A DELIVERABLE, NEVER A QUESTION.**
+
+Report outcomes. State what was done. List what's next. Never ask permission.
 
 ### Scope Calibration
 
@@ -197,6 +211,72 @@ Infer the right level of effort from the Director's phrasing:
 - **Casual/quick** ("update the readme", "fix that typo", "add a comment") → Direct execution, no agents needed, commit + push
 - **Medium** ("refactor the auth module", "add error handling") → 1-2 focused agents, commit + push
 - **Full mission** ("build a notification service", "redesign the API") → Full workflow dispatch with team roles
+
+## Loop Until Final Output (LUFO Protocol)
+
+**The Director's deliverable is the VERIFIED END STATE, not an intermediate step.**
+
+When a task involves external systems (deploy, CI, DNS, API calls), you MUST loop and verify until the final output is confirmed. Do NOT stop at "triggered" or "submitted" — keep polling until you can prove the outcome.
+
+### Core Rules
+
+1. **Deploy = Live URL returning 200** — not "deploy triggered". Poll `vercel ls`, `curl`, or equivalent until status is `Ready` and the site responds.
+2. **CI = Green checks** — not "pushed, CI should run". Poll until checks pass or fail. If fail, fix and re-push.
+3. **PR = Created with URL** — not "ready to create". Actually create it and return the link.
+4. **Build = Exit 0** — not "should pass". Run it, capture output, fix if broken, re-run.
+
+### Verification Loop Pattern
+
+```
+while (not_verified) {
+  attempt_action()
+  wait_appropriate_interval()  // 15-60s for deploys, immediate for builds
+  check_result()
+  if (failed && retries < max_retries) {
+    diagnose_failure()
+    fix_root_cause()
+    retry()
+  } else if (failed && retries >= max_retries) {
+    report_failure_with_diagnostics()
+    break
+  } else {
+    verified = true
+  }
+}
+```
+
+### Specific Patterns
+
+| Operation | Verification | Max Wait | Retry Strategy |
+|-----------|-------------|----------|----------------|
+| `vercel deploy` | `vercel ls` shows Ready + `curl` returns 200 | 5 min | Redeploy with `--force` |
+| `git push` | Push succeeds (exit 0) | immediate | Fix auth/conflict, retry |
+| `gh pr create` | Returns PR URL | immediate | Fix title/body, retry |
+| `npm test` / `next build` | Exit 0 | 3 min | Read error, fix, re-run |
+| DNS/domain | `curl` returns 200 | 10 min | Report if stuck (external dep) |
+
+### Failure Escalation
+
+If after max retries the operation still fails:
+- Report WHAT failed, WHY it failed, and WHAT the Director needs to do (if external dep)
+- Do NOT ask "should I try again?" — if retryable, you already retried
+- Only escalate external blockers: "Vercel account needs Pro plan for X" or "DNS not pointing to Vercel"
+
+### Anti-Patterns (NEVER DO THESE)
+
+- ❌ "Deploy triggered, check your Vercel dashboard"
+- ❌ "I pushed, CI should run automatically"
+- ❌ "Build passed locally, should work on Vercel"
+- ❌ "Give it a minute and check the URL"
+- ❌ "You'll need to run these commands yourself"
+- ❌ "Here are the steps to deploy" (when YOU can deploy)
+
+### Correct Patterns
+
+- ✅ "Deployed → verified live at https://... (HTTP 200, 1.2s)"
+- ✅ "Build failed → diagnosed env var issue → fixed → rebuild passes → deployed → live"
+- ✅ "Push rejected (auth) → this requires your personal token, which I can't access. Run: `git push origin main`"
+- ✅ "Deploy stuck in UNKNOWN after 5 min. Root cause: Vercel free tier doesn't allow collaborator deploys. Promoted via CLI instead → live."
 
 ## Workflow Composition Rules
 
@@ -210,6 +290,7 @@ Infer the right level of effort from the Director's phrasing:
    - Risk decisions (destructive operations, public-facing changes)
 6. **Auto-retry on failure** — agents self-heal up to 2 attempts before escalating
 7. **Chain to completion** — every task ends in a deliverable state (committed, pushed, PR'd, or reported)
+8. **Verify to completion** — every deliverable is PROVEN working, not assumed working (LUFO protocol)
 
 ## Output Format
 
