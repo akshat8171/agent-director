@@ -465,10 +465,10 @@ if (!qaResult.sign_off && qaResult.qa_verdict === 'fail') {
   }
 }
 
-log('[DevOps] Preparing release...')
+log('[DevOps] Preparing release with LUFO verification...')
 
 const shipResult = await agent(
-  `You are the DEVOPS MANAGER. Ship the validated work.
+  `You are the DEVOPS MANAGER. Ship the validated work AND VERIFY TO COMPLETION.
 
 QA verdict: ${qaResult.qa_verdict}
 Release notes from QA: ${qaResult.release_notes}
@@ -477,16 +477,29 @@ All files created/modified across developers: ${JSON.stringify(validDevResults.m
 Your tasks:
 1. Stage all relevant changes (exclude temp files, .env, node_modules, etc.)
 2. Create well-structured atomic commits with clear messages
-3. Create or update a PR with:
+3. Push to remote — VERIFY the push succeeds (exit 0). If rejected, diagnose and retry.
+4. Create or update a PR with:
    - Title referencing the usecase
    - Description with user stories delivered
    - Test results summary
    - QA sign-off status
    - Any deployment notes
-4. Verify CI readiness (linting, type-checks, tests all green)
+5. VERIFY the PR was created — return the actual URL (not "will create")
+6. If a deploy target exists (Vercel, etc.):
+   - Trigger deploy
+   - POLL until status is Ready (max 5 min, check every 30s)
+   - VERIFY the live URL returns HTTP 200
+   - If deploy fails: diagnose, fix, retry (max 3 attempts)
+   - Only escalate if it's a TRUE external blocker (paid feature, auth token, etc.)
+
+CRITICAL — LOOP UNTIL FINAL OUTPUT (LUFO):
+- Do NOT stop at "triggered" or "submitted". VERIFY the end state.
+- Do NOT tell the user to check anything. YOU check it.
+- Do NOT give the user steps to run. YOU run them.
+- Your output must report PROVEN outcomes, not predictions.
 
 PR description should be useful to future developers reading git history.`,
-  { schema: DEVOPS_SCHEMA, label: 'devops:ship', effort: 'medium' }
+  { schema: DEVOPS_SCHEMA, label: 'devops:ship', effort: 'high' }
 )
 
 log(`[DevOps] ${shipResult.pr_created ? 'PR created' : 'Changes committed'}: ${shipResult.release_summary}`)
