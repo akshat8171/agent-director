@@ -1,8 +1,8 @@
 # Agent Director
 
-> Autonomous multi-agent orchestration for Claude Code. Operate as an Engineering Director — provide intent, agents deliver outcomes.
+> Autonomous multi-agent orchestration for Claude Code. Operate as an Engineering Director — provide intent, agents deliver **verified** outcomes.
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://git.soma.salesforce.com/akshat-garg/agent-director)
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://git.soma.salesforce.com/akshat-garg/agent-director)
 [![Claude Code](https://img.shields.io/badge/platform-Claude%20Code-purple.svg)](https://claude.ai/code)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -27,7 +27,19 @@ You (Director)
 
 **You never write code. You never debug. You never execute.**
 
-You provide the mission brief. Agents make decisions and report outcomes.
+You provide the mission brief. Agents make decisions, execute to completion, and report **proven** outcomes.
+
+### What's New in v2.2.0 — Loop Until Final Output (LUFO)
+
+Agents no longer stop at "triggered" or "submitted." They **loop and verify** until the deliverable is confirmed:
+
+| Operation | Old Behavior | LUFO Behavior |
+|-----------|-------------|---------------|
+| Deploy | "Deploy triggered, check your dashboard" | Polls until URL returns HTTP 200, retries on failure |
+| Build | "Should pass" | Runs until exit 0, diagnoses and fixes if broken |
+| Push | "Pushed to remote" | Verifies ref updated, fixes conflicts if rejected |
+| CI | "CI should run" | Polls until checks are green, fixes if red |
+| PR | "Ready to create" | Creates it, returns the URL |
 
 ---
 
@@ -168,21 +180,47 @@ Developer output
   │ Tester  │ ─────────────────────► │ Dev (fix)  │   │
   └─────────┘                         └────────────┘   │
        │ passing                                        │
-       ▼                                  max 2 retries │
+       ▼                                  max 3 retries │
   ┌─────────┐                                          │
   │   QA    │ ◄────────────────────────────────────────┘
   └─────────┘
        │ pass / conditional_pass
        ▼
   ┌─────────┐
-  │ DevOps  │ → PR + CI + Release
+  │ DevOps  │ → PR + CI + Release + VERIFY LIVE (LUFO)
   └─────────┘
+```
+
+### LUFO Verification Loop (v2.2.0)
+
+After shipping, the DevOps agent doesn't stop at "PR created." It verifies the full delivery:
+
+```
+  Ship action
+       │
+       ▼
+  ┌──────────────┐
+  │ Execute step │ (deploy, push, PR create)
+  └──────┬───────┘
+         │
+         ▼
+  ┌──────────────┐     failed + retries < 3    ┌─────────────┐
+  │ Verify state │ ──────────────────────────► │ Diagnose +  │
+  │ (poll/curl)  │                              │ Fix + Retry │
+  └──────┬───────┘                              └──────┬──────┘
+         │ verified (200/exit 0/URL)                    │
+         ▼                                             │
+  ┌──────────────┐                                     │
+  │ Report       │ ◄──────────────────────────────────┘
+  │ PROVEN state │     (max 3 retries exhausted → escalate)
+  └──────────────┘
 ```
 
 **Escalation Policy** — only escalates to you for:
 - Ambiguous requirements (multiple valid interpretations)
 - External dependencies (access, permissions, approvals needed)
 - Risk decisions (destructive operations, public-facing changes)
+- TRUE external blockers after max retries (paid features, DNS propagation, auth tokens agent can't access)
 
 ---
 
@@ -346,8 +384,9 @@ agent-director/
 | **Structured over prose** | 14 JSON schemas across workflows — agents communicate via validated data, not free text |
 | **Parallel where possible** | Developers build components simultaneously in isolated worktrees |
 | **Quality-gated** | Code must pass review + testing + QA before shipping — no shortcuts |
-| **Self-healing** | Auto-fix loops for review issues and blocker bugs (max 2 retries) |
-| **Minimal escalation** | Only 3 conditions escalate to the human: ambiguity, external deps, risk |
+| **Self-healing** | Auto-fix loops for review issues, blocker bugs, build failures, and deploy failures (max 3 retries) |
+| **Verified delivery (LUFO)** | Every deliverable is PROVEN working — polls, curls, checks exit codes. Never reports intermediate states as outcomes |
+| **Minimal escalation** | Only escalates for: ambiguity, external deps, risk, and true external blockers after retries exhausted |
 | **Zero-config activation** | SessionStart hook activates automatically — no manual invocation needed |
 
 ---
@@ -378,10 +417,44 @@ Control what the system handles autonomously vs. what it asks you about:
 ```json
 {
   "escalation_policy": {
-    "max_retries": 2,
-    "auto_fix_on": ["review_changes_requested", "test_bugs_found"],
+    "max_retries": 3,
+    "auto_fix_on": ["review_changes_requested", "test_bugs_found", "build_failure", "deploy_failure"],
     "block_ship_on": ["qa_fail", "security_critical"],
     "escalate_to_director_on": ["ambiguous_requirements", "external_dependency", "risk_decision"]
+  }
+}
+```
+
+### LUFO Protocol Configuration (v2.2.0)
+
+Fine-tune the verification loop behavior:
+
+```json
+{
+  "lufo_protocol": {
+    "verification_targets": {
+      "deploy": "Live URL returning HTTP 200",
+      "build": "Exit code 0 with no errors",
+      "ci": "All checks green",
+      "push": "Remote ref updated successfully",
+      "pr": "PR URL returned and accessible"
+    },
+    "retry_limits": {
+      "deploy": 3,
+      "build": 3,
+      "push": 2,
+      "ci": 2
+    },
+    "poll_intervals_seconds": {
+      "deploy": 30,
+      "ci": 30,
+      "dns": 60
+    },
+    "max_wait_seconds": {
+      "deploy": 300,
+      "ci": 300,
+      "dns": 600
+    }
   }
 }
 ```
@@ -479,7 +552,7 @@ Just tell the session: "I'm coding directly today" — it switches to normal mod
 <details>
 <summary><b>What happens if an agent fails?</b></summary>
 
-The system retries up to 2 times (configurable). If a developer's output fails review, it auto-fixes. If tests find blockers, they auto-patch. Only persistent failures escalate to you.
+The system retries up to 3 times (configurable). If a developer's output fails review, it auto-fixes. If tests find blockers, they auto-patch. If a deploy fails, it diagnoses the root cause, fixes, and retries. Only persistent failures after max retries escalate to you — and even then, the agent reports what failed, why, and what you specifically need to do (not vague "check the dashboard" messages).
 </details>
 
 <details>
@@ -558,12 +631,14 @@ The installer sets:
 
 ## Roadmap
 
+- [x] ~~Loop Until Final Output (LUFO) — verify deliverables to completion~~ *(v2.2.0)*
 - [ ] Event-driven triggers (Slack message → auto-triage → auto-fix)
 - [ ] Scheduled workflows (nightly test runs, dependency audits)
 - [ ] Cross-session memory (learn from past executions)
 - [ ] Metrics dashboard (agent utilization, quality trends, cycle time)
 - [ ] Multi-repo orchestration (coordinate across services)
 - [ ] Custom role definitions via configuration (no code changes)
+- [ ] LUFO for CI pipelines (poll GitHub Actions / SFCI until green, auto-fix failures)
 
 ---
 
